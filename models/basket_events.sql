@@ -1,17 +1,8 @@
-/*Creating detailed table for pre-processing abandonment data and troubleshooting purposes*/
-/*Date variable for the period we are assessing*/
-DECLARE start_date STRING DEFAULT '20201201';
-DECLARE end_date STRING DEFAULT '20201231';
-
-/*  Creating two abandon conditions to increase catch range/timing: 
-         Event level with low threshold
-         Session level with high threshold   */
-DECLARE event_level_abandon_threshold INT64 DEFAULT 1800;    /*time in seconds*/
-DECLARE session_level_abandon_threshold INT64 DEFAULT 21600; /*time in seconds*/
-
-/*Creating list events for monitoring basket mutations*/
-DECLARE basket_event_list ARRAY <STRING>;
-SET basket_event_list = [
+{% set start_date = var('start_date', default=20201201) %}
+{% set end_date = var('end_date', default=20201201) %}
+{% set event_level_abandon_threshold = var('event_level_abandon_threshold', default=1800) %}
+{% set session_level_abandon_threshold = var('session_level_abandon_threshold', default=21600) %}
+{% set basket_event_list = var('basket_event_list', [
         'add_to_cart',
         'begin_checkout',
         'purchase',
@@ -20,10 +11,10 @@ SET basket_event_list = [
         'view_item',
         'view_item_list',
         'view_promotion'
-];
+]
+) %}
 
 WITH 
-
 /*Retrieving sessions that did include a "purchase" event*/
 cte_purchase_sessions AS (
   SELECT DISTINCT
@@ -31,7 +22,7 @@ cte_purchase_sessions AS (
     1 AS session_purchase_flag
   FROM `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*` t
   WHERE 
-    _TABLE_SUFFIX BETWEEN start_date AND end_date
+    _TABLE_SUFFIX BETWEEN '{{ start_date }}' AND '{{ end_date }}'
     AND event_name = 'purchase'
 ),
 
@@ -53,7 +44,11 @@ cte_base_data AS (
     t.event_name,
 
     CASE
-      WHEN t.event_name IN UNNEST(basket_event_list)
+      WHEN t.event_name IN (
+        {% for event in basket_event_list %}
+            '{{ event }}' {% if not loop.last %}, {% endif %}
+        {% endfor %}
+    )
       THEN 1 ELSE 0
     END AS basket_related_event,
 
@@ -69,13 +64,17 @@ cte_base_data AS (
 
   FROM `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*` t
   LEFT JOIN UNNEST(items) i
-  LEFT JOIN `data-eng11.ga4_obfuscated_sample_ecommerce.users` u
+  LEFT JOIN `data-eng11.dbt_sample_ecommerce.users` u
     ON u.user_pseudo_id = t.user_pseudo_id
   LEFT JOIN cte_purchase_sessions np 
     ON (SELECT value.int_value FROM UNNEST(event_params) WHERE key ='ga_session_id') = np.session_id
 
-  WHERE _TABLE_SUFFIX BETWEEN start_date AND end_date
-    AND t.event_name IN UNNEST(basket_event_list) /*Exclusively Filtering on Events with Basket Data*/
+  WHERE _TABLE_SUFFIX BETWEEN '{{ start_date }}' AND '{{ end_date }}'
+    AND t.event_name IN (
+        {% for event in basket_event_list %}
+            '{{ event }}' {% if not loop.last %}, {% endif %}
+        {% endfor %}
+    ) /*Exclusively Filtering on Events with Basket Data*/
 
   GROUP BY 
     session_id,
@@ -141,11 +140,11 @@ cte_flag_calc AS (
 
   SELECT 
     t.*,
-    CASE WHEN t.event_to_event_delta >= event_level_abandon_threshold THEN 1 ELSE 0 END AS event_abandon_flag,
-    CASE WHEN t.session_start_delta >= session_level_abandon_threshold THEN 1 ELSE 0 END AS session_abandon_flag
+    CASE WHEN t.event_to_event_delta >= {{ event_level_abandon_threshold }} THEN 1 ELSE 0 END AS event_abandon_flag,
+    CASE WHEN t.session_start_delta >= {{ session_level_abandon_threshold }} THEN 1 ELSE 0 END AS session_abandon_flag
   FROM cte_time_delta t
 
 )
 
 SELECT * FROM cte_flag_calc 
-ORDER BY session_id, event_timestamp DESC;
+ORDER BY session_id, event_timestamp DESC
