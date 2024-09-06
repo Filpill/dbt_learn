@@ -1,19 +1,3 @@
-{% set start_date = var('start_date', default=20201201) %}
-{% set end_date = var('end_date', default=20201201) %}
-{% set event_level_abandon_threshold = var('event_level_abandon_threshold', default=1800) %}
-{% set session_level_abandon_threshold = var('session_level_abandon_threshold', default=21600) %}
-{% set basket_event_list = var('basket_event_list', [
-        'add_to_cart',
-        'begin_checkout',
-        'purchase',
-        'select_item',
-        'select_promotion',
-        'view_item',
-        'view_item_list',
-        'view_promotion'
-]
-) %}
-
 WITH 
 /*Retrieving sessions that did include a "purchase" event*/
 cte_purchase_sessions AS (
@@ -22,7 +6,7 @@ cte_purchase_sessions AS (
     1 AS session_purchase_flag
   FROM `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_*` t
   WHERE 
-    _TABLE_SUFFIX BETWEEN '{{ start_date }}' AND '{{ end_date }}'
+    _TABLE_SUFFIX BETWEEN '{{ var('start_date') }}' AND '{{ var('end_date') }}'
     AND event_name = 'purchase'
 ),
 
@@ -45,9 +29,7 @@ cte_base_data AS (
 
     CASE
       WHEN t.event_name IN (
-        {% for event in basket_event_list %}
-            '{{ event }}' {% if not loop.last %}, {% endif %}
-        {% endfor %}
+         {{ expand_list(var('basket_event_list')) }}
     )
       THEN 1 ELSE 0
     END AS basket_related_event,
@@ -69,12 +51,10 @@ cte_base_data AS (
   LEFT JOIN cte_purchase_sessions np 
     ON (SELECT value.int_value FROM UNNEST(event_params) WHERE key ='ga_session_id') = np.session_id
 
-  WHERE _TABLE_SUFFIX BETWEEN '{{ start_date }}' AND '{{ end_date }}'
+  WHERE _TABLE_SUFFIX BETWEEN '{{ var('start_date') }}' AND '{{ var('end_date') }}'
     AND t.event_name IN (
-        {% for event in basket_event_list %}
-            '{{ event }}' {% if not loop.last %}, {% endif %}
-        {% endfor %}
-    ) /*Exclusively Filtering on Events with Basket Data*/
+        {{ expand_list(var('basket_event_list')) }}
+) /*Exclusively Filtering on Events with Basket Data*/
 
   GROUP BY 
     session_id,
@@ -140,8 +120,8 @@ cte_flag_calc AS (
 
   SELECT 
     t.*,
-    CASE WHEN t.event_to_event_delta >= {{ event_level_abandon_threshold }} THEN 1 ELSE 0 END AS event_abandon_flag,
-    CASE WHEN t.session_start_delta >= {{ session_level_abandon_threshold }} THEN 1 ELSE 0 END AS session_abandon_flag
+    CASE WHEN t.event_to_event_delta >= {{ var('event_level_abandon_threshold') }} THEN 1 ELSE 0 END AS event_abandon_flag,
+    CASE WHEN t.session_start_delta >= {{ var('session_level_abandon_threshold') }} THEN 1 ELSE 0 END AS session_abandon_flag
   FROM cte_time_delta t
 
 )
