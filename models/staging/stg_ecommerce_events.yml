@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: stg__purchase_sessions
+    columns:
+      - name: session_id
+        tests:
+          - unique
+          - not_null
+  - name: stg__basket_base_data
+    columns:
+      - name: email
+        tests: 
+          - not_null
+      - name: event_name
+        tests:
+          - accepted_values:
+              values:
+                - 'add_to_cart'
+                - 'begin_checkout'
+                - 'purchase'
+                - 'select_item'
+                - 'select_promotion'
+                - 'view_item'
+                - 'view_item_list'
+                - 'view_promotion'
