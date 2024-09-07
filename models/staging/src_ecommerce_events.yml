@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+
+  - name: ga4_obfuscated_sample_ecommerce
+    description: Google merchandise store data source capturing event level data
+    database: bigquery-public-data
+    schema: ga4_obfuscated_sample_ecommerce
+    freshness: 
+      warn_after: {count: 6, period: hour}
+      error_after: {count: 24, period: hour}
+    tables:
+      - name: events_*
+
+  - name: dbt_sample_ecommerce
+    description: Landing dataset/schema for transformed data
+    database: data-eng11
+    schema: dbt_sample_ecommerce
+    tables:
+      - name: users

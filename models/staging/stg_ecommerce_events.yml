@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg__purchase_sessions
+    description: Retrieving sessions that did include a "purchase" event
+    columns:
+      - name: session_id
+        description: The session identifier in which a customer is engaging with the store
+        tests:
+          - unique
+          - not_null
+  - name: stg__basket_base_data
+    description: "{{ doc('basket_base_data') }}"
+    columns:
+      - name: email
+        description: The email address associated with the user
+        tests: 
+          - not_null
+      - name: event_name
+        description: The name of the type of engagement recorded by Google Analytics API
+        tests:
+          - accepted_values:
+              values:
+                - 'add_to_cart'
+                - 'begin_checkout'
+                - 'purchase'
+                - 'select_item'
+                - 'select_promotion'
+                - 'view_item'
+                - 'view_item_list'
+                - 'view_promotion'

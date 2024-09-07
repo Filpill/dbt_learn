@@ -1,0 +1,10 @@
+version: 2
+
+models:        
+  - name: basket_events
+    columns:
+      - name: session_id
+        tests:
+          - relationships:
+              to: ref('stg__basket_base_data')
+              field: session_id
