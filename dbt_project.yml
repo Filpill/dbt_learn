@@ -17,10 +17,12 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "dbt_packages"
 
 models:
-  mart:
-    +materialized: table
-  staging:
-    +materialized: view
+  sample_ecommerce_project:
+    mart:
+      basket_events:
+        +materialized: table
+    staging:
+      +materialized: view
 
 vars:
   start_date: '20201201'
