@@ -12,9 +12,9 @@ sources:
     tables:
       - name: events_*
 
-  - name: dbt_sample_ecommerce
+  - name: customer
     description: Landing dataset/schema for transformed data
     database: data-eng11
-    schema: dbt_sample_ecommerce
+    schema: customer
     tables:
       - name: users
