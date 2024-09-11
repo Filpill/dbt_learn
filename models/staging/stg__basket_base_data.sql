@@ -28,7 +28,7 @@ SELECT
 
   FROM {{ source('ga4_obfuscated_sample_ecommerce', 'events_*') }} t
   LEFT JOIN UNNEST(items) i
-  LEFT JOIN {{ source('dbt_sample_ecommerce', 'users') }} u
+  LEFT JOIN {{ source('customer', 'users') }} u
     ON u.user_pseudo_id = t.user_pseudo_id
   LEFT JOIN {{ ref('stg__purchase_sessions') }} np 
     ON (SELECT value.int_value FROM UNNEST(event_params) WHERE key ='ga_session_id') = np.session_id
