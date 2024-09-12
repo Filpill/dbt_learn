@@ -13,12 +13,8 @@ sources:
       - name: events_*
 
   - name: customer
-    description: Landing dataset/schema for transformed data
-    database: |
-      {%- if  target.name == "dev" -%} data-eng11
-      {%- elif target.name == "prod"  -%} prod-data-eng11
-      {%- else -%} invalid_database
-      {%- endif -%}
+    description: Customer dataset containing user information
+    database: "{{ env_var('DBT_ENVIRONMENT') }}"
     schema: customer
     tables:
       - name: users
