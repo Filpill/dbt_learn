@@ -14,7 +14,11 @@ sources:
 
   - name: customer
     description: Landing dataset/schema for transformed data
-    database: data-eng11
+    database: |
+      {%- if  target.name == "dev" -%} data-eng11
+      {%- elif target.name == "prod"  -%} prod-data-eng11
+      {%- else -%} invalid_database
+      {%- endif -%}
     schema: customer
     tables:
       - name: users
